@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
+
 import requests
 import logging
 import telegram
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import time
 import os
 import pause, datetime
@@ -15,7 +17,7 @@ _apikey = os.environ["ETHERSCAN_API_KEY"]
 _chainlink = '0x514910771af9ca656af840dff83e8264ecf986ca'
 _url = 'https://etherscan.io/token/'+_chainlink+'?a='
 _whale = [
-    {'address': '0x75398564ce69b7498da10a11ab06fd8ff549001c', 'amount': 55000000},
+    {'address': '0x75398564ce69b7498da10a11ab06fd8ff549001c', 'amount': 0},
     {'address': '0x5560d001f977df5e49ead7ab0bdd437c4ee3a99e', 'amount': 0},
     {'address': '0xbe6977e08d4479c0a6777539ae0e8fa27be4e9d6', 'amount': 0},
     {'address': '0xe0362f7445e3203a496f6f8b3d51cbb413b69be2', 'amount': 0},
@@ -25,10 +27,8 @@ _whale = [
 full = "50,000,000"
 
 def watch():
-    whale = {}
-    whale = updateQuantities(_whale)
-    prevWhale = _whale.copy()
-    #prevWhale = whale.copy()
+    whale = _whale.copy()
+    prevWhale = whale.copy()
     while True:
         whale = updateQuantities(whale)
         dumpedAmount = getDumpedAmount(whale, prevWhale)
@@ -38,29 +38,29 @@ def watch():
             alert(whale, dumpedAmount, dumpedWallet)
         time.sleep(5)
 
-def ls(update, context):
-    print('wtf')
-    text = "🤓 List of wallet.\n\n"
-    texts =[]
-    for i in range(0,5):
-        texts.append("☑️  Wallet #"+str(i+1)+"\n"+url+w+"\n"+"("+"{:,}".format(int(whale[w]))+"/"+full+")\n")
-    text = '\n'.join(texts)
-    context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
-def listen():
-    _dp.add_handler(CommandHandler("ls", ls, pass_args=True))
-    _updater.start_polling()
+def check():
+    whale = _whale.copy()
+    while True:
+        whale = updateQuantities(whale)
+        text = "🤓 Monthly Check-up\n\n List of wallet:\n\n"
+        texts =[]
+        for i in range(0,6):
+            texts.append("☑️  Wallet #"+str(i+1)+"\n"+_url+whale[i]['address']+"\n"+"("+"{:,}".format(int(whale[i]['amount']))+"/"+full+")\n")
+        text = text + '\n'.join(texts)
+        _bot.sendMessage(chat_id=_chatid, text=text)
+        time.sleep(30*24*60*60)
 
 def getDumpedAmount(whale, prevWhale):
     total = 0
-    for i in range(0,5):
+    for i in range(0,6):
         if whale[i]['amount'] < prevWhale[i]['amount']:
             total = total + (prevWhale[i]['amount'] - whale[i]['amount'])
     return total
 
 def getDumpedWallet(whale, prevWhale):
     wallets = []
-    for i in range(0,5):
+    for i in range(0,6):
         if whale[i]['amount'] < prevWhale[i]['amount']:
             wallets.append(i)
     return wallets
@@ -76,8 +76,7 @@ def alert(whale, dumpedAmount, dumpedWallet):
         texts.append("☑️  Wallet #"+str(i+1)+"\n"+_url+whale[i]['address']+"\n"+"("+"{:,}".format(int(whale[i]['amount']))+"/"+full+")\n")
     texts = "\n".join(texts)
     text = text + texts
-    print(text)
-    #_bot.sendMessage(chat_id=_chatid, text=text)
+    _bot.sendMessage(chat_id=_chatid, text=text)
 
 def updateQuantities(whale):
     new = []
@@ -95,18 +94,17 @@ class watcher(Thread):
     def run(self):
         watch()
 
-class listener(Thread):
+class checker(Thread):
     def __init__(self):
         Thread.__init__(self)
         self.daemon = True
         self.start()
     def run(self):
-        listen()
+        check()
 
-_dp.add_handler(CommandHandler("ls", ls))
-_updater.start_polling()
 watcher()
-listener()
+checker()
 
 while True:
     pass
+
