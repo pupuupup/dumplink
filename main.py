@@ -3,15 +3,12 @@
 import requests
 import logging
 import telegram
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import time
 import os
 import pause, datetime
 from threading import Thread
 
 _bot = telegram.Bot(token=os.environ["TELEGRAM_API_KEY"])
-_updater = Updater(token=os.environ["TELEGRAM_API_KEY"], use_context=True)
-_dp = _updater.dispatcher
 _chatid = os.environ["TELEGRAM_CHAT_ID"]
 _apikey = os.environ["ETHERSCAN_API_KEY"]
 _chainlink = '0x514910771af9ca656af840dff83e8264ecf986ca'
